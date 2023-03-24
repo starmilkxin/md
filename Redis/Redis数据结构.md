@@ -1,3 +1,13 @@
+- [Redis数据结构](#redis数据结构)
+  - [SDS](#sds)
+  - [链表](#链表)
+  - [压缩列表 ziplist](#压缩列表-ziplist)
+  - [哈希表](#哈希表)
+  - [整数集合 intset](#整数集合-intset)
+  - [跳表 SkipList](#跳表-skiplist)
+  - [quicklist](#quicklist)
+  - [listpack](#listpack)
+
 # Redis数据结构
 
 Redis3.0 与 Redis最新版本 数据类型与数据结构的关系
