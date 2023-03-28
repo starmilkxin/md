@@ -237,3 +237,128 @@ class LFUCache {
  * obj.put(key,value);
  */
 ```
+
+简单且高效的做法（利用LinkedHashSet代替双向列表）：
+
+```java
+class LFUCache {
+
+    class Node {
+        int key;
+        int value;
+        int fre;
+
+        public Node() {
+        }
+
+        public Node(int key, int value) {
+            this.key = key;
+            this.value = value;
+            this.fre = 1;
+        }
+    }
+
+    Map<Integer, Deque<Node>> mapFre;
+
+    Map<Integer, Node> mapKV;
+
+    int capacity;
+
+    int size;
+
+    int minFre;
+
+    public LFUCache(int capacity) {
+        this.capacity = capacity;
+        mapFre = new HashMap<>();
+        mapKV = new HashMap<>();
+    }
+    
+    public void insertNode(Node node) {
+        if (this.minFre == 0 || node.fre < this.minFre) {
+            this.minFre = node.fre;
+        }
+        Deque<Node> dq = mapFre.get(node.fre);
+        if (dq == null) {
+            dq = new LinkedList<>();
+            mapFre.put(node.fre, dq);
+        }
+        dq.addLast(node);
+        mapKV.put(node.key, node);
+        this.size++;
+    }
+
+    public void removeNode() {
+        if (this.size == 0) {
+            return;
+        }
+        Deque<Node> dq = null;
+        while (true) {
+            dq = mapFre.get(this.minFre);
+            if (dq == null) {
+                this.minFre++;
+            } else {
+                break;
+            }
+        }
+        Node rmNode = dq.removeFirst();
+        mapKV.remove(rmNode.key);
+        this.size--;
+        if (dq.size() == 0) {
+            mapFre.remove(this.minFre);
+            this.minFre++;
+        }
+    }
+
+    public void removeNode(Node node) {
+        Deque<Node> dq = mapFre.get(node.fre);
+        if (dq == null) {
+            return;
+        }
+        dq.remove(node);
+        mapKV.remove(node.key);
+        this.size--;
+        if (dq.size() == 0) {
+            mapFre.remove(node.fre);
+            if (node.fre == this.minFre) {
+                this.minFre++;
+            }
+        }
+    }
+
+    public int get(int key) {
+        Node node = mapKV.get(key);
+        if (node == null) {
+            return -1;
+        }
+        int value = node.value;
+        removeNode(node);
+        node.fre++;
+        insertNode(node);
+        return value;
+    }
+    
+    public void put(int key, int value) {
+        Node node = mapKV.get(key);
+        if (node == null) {
+            node = new Node(key, value);
+            mapKV.put(key, node);
+            if (this.size == this.capacity) {
+                removeNode();
+            }
+        } else {
+            removeNode(node);
+            node.value = value;
+            node.fre++;
+        }
+        insertNode(node);
+    }
+}
+
+/**
+ * Your LFUCache object will be instantiated and called as such:
+ * LFUCache obj = new LFUCache(capacity);
+ * int param_1 = obj.get(key);
+ * obj.put(key,value);
+ */
+```
