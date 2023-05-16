@@ -12,6 +12,8 @@
 
 # redo 日志
 
+redolog是物理日志
+
 ## redo 日志的作用
 
 为了防止断电导致数据丢失的问题，当有一条记录需要更新的时候，InnoDB 引擎就会先把记录写到 redo log 里面，并更新内存，这个时候更新就算完成了。同时，InnoDB 引擎会在适当的时候，由后台线程将缓存在 Buffer Pool  的脏页刷新到磁盘里，这就是  WAL （Write-Ahead Logging）技术，指的是 MySQL 的写操作并不是立刻更新到磁盘上，而是先记录在日志上，然后在合适的时间再更新到磁盘上。
@@ -65,6 +67,8 @@ redo log 是循环写的方式，相当于一个环形，InnoDB 用 write pos �
 
 # undo log
 
+undolog是逻辑日志
+
 redo log是事务持久性的保证，undo log是事务原子性的保证。在事务中 更新数据 的 前置操作 其实是要 先写入一个 undo log 。
 
 ![undolog](https://cdn.jsdelivr.net/gh/starmilkxin/picturebed/img/undolog.png)
@@ -110,6 +114,8 @@ update undo log
 - update undo log 记录的是对delete和update操作产生的undo log。该undo log可能需要提供MVcc机制，因此不能在事务提交时就进行删除。提交时放入undo log链表，等待purge线程进行最后的删除。
 
 # binlog
+
+binlog是逻辑日志
 
 MySQL 在完成一条更新操作后，Server 层还会生成一条 binlog，等之后事务提交的时候，会将该事物执行过程中产生的所有 binlog 统一写 入 binlog 文件。
 

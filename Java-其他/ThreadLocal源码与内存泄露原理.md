@@ -47,10 +47,10 @@ static class Entry extends WeakReference<ThreadLocal<?>> {
 
 但是无论是将ThreadLocal作为弱引用对象，还是强引用对象，当将外部的其强引用置为null后，都是会发生无法调用remove()方法导致内存泄露问题发生的！
 如果将其作为强引用对象，那么会造成key和value都无法消除的情况产生，会加剧内存泄漏。
-而如果将ThreadLocal作为弱引用对象，那么当外部的强引用为null后，对象所占用的内存便会被回收，entry中的key便为null，此时虽然val依旧存在，会发生内存泄漏，但是起码情况比key没被回收要好！这也就是为什么ThreadLocal要设置为弱引用对象的原因
+而如果将ThreadLocal作为弱引用对象，那么当外部的强引用为null后，对象所占用的内存便会被回收，entry中的key便为null，此时虽然val依旧存在，会发生内存泄漏，但是起码情况比key没被回收要好！同时也可以根据key是否为null来判断是否要对value进行回收。这也就是为什么ThreadLocal要设置为弱引用对象的原因。
 <br/>
 解决方法：
-+ 主动调用ThreadLocal的remove()方法清除val
++ 主动调用ThreadLocal的remove()方法清除val。
 + 当无法主动调用ThreadLocal的remove()方法时，ThreadLocal的部分操作也会能让我们被动地清除那些entry的key为null所对应的val，下面会说到。
 
 # ThreadLocal部分操作源码

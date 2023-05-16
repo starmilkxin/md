@@ -15,28 +15,28 @@ AbstractQueuedSynchronizer是阻塞式锁和相关的同步器工具的框架。
 通过继承该抽象类，我们可以非常便捷地实现我们自己的同步器，以此来生成自定义锁。<br/>
 <br/>
 AQS 核心原理
-+ 如果被请求的共享资源未被占用，将当前请求资源的线程设置为独占线程，并将共享资源设置为锁定状态
-+ AQS 使用一个 Volatile 修饰的 int 类型的成员变量 State 来表示同步状态，修改同步状态成功即为获得锁
-+ Volatile 保证了变量在多线程之间的可见性，修改 State 值时通过 CAS 机制来保证修改的原子性
-+ 如果共享资源被占用，需要一定的阻塞等待唤醒机制来保证锁的分配，AQS 中会将竞争共享资源失败的线程添加到一个变体的 CLH 队列中
+- 如果被请求的共享资源未被占用，将当前请求资源的线程设置为独占线程，并将共享资源设置为锁定状态
+- AQS 使用一个 Volatile 修饰的 int 类型的成员变量 State 来表示同步状态，修改同步状态成功即为获得锁
+- Volatile 保证了变量在多线程之间的可见性，修改 State 值时通过 CAS 机制来保证修改的原子性
+- 如果共享资源被占用，需要一定的阻塞等待唤醒机制来保证锁的分配，AQS 中会将竞争共享资源失败的线程添加到一个变体的 CLH 队列中
 
 ![AQS原理](https://cdn.jsdelivr.net/gh/starmilkxin/picturebed/img/20220326103732.png)
 
 <br/>
 CLH队列
-+ CLH 队列是一个单向链表，保持 FIFO 先进先出的队列特性
-+ 通过 tail 尾节点（原子引用）来构建队列，总是指向最后一个节点
-+ 未获得锁节点会进行自旋，而不是切换线程状态
-+ 并发高时性能较差，因为未获得锁节点不断轮训前驱节点的状态来查看是否获得锁
+- CLH 队列是一个单向链表，保持 FIFO 先进先出的队列特性
+- 通过 tail 尾节点（原子引用）来构建队列，总是指向最后一个节点
+- 未获得锁节点会进行自旋，而不是切换线程状态
+- 并发高时性能较差，因为未获得锁节点不断轮训前驱节点的状态来查看是否获得锁
 
 ![CLH队列](https://cdn.jsdelivr.net/gh/starmilkxin/picturebed/img/20220326105343.png)
 
 <br/>
 变体的CLH队列
-+ AQS 中队列是个双向链表，也是 FIFO 先进先出的特性
-+ 通过 Head、Tail 头尾两个节点来组成队列结构，通过 volatile 修饰保证可见性
-+ Head 指向节点为已获得锁的节点，是一个虚拟节点，节点本身不持有具体线程
-+ 获取不到同步状态，会将节点进行自旋获取锁，自旋一定次数失败后会将线程阻塞，相对于 CLH 队列性能较好
+- AQS 中队列是个双向链表，也是 FIFO 先进先出的特性
+- 通过 Head、Tail 头尾两个节点来组成队列结构，通过 volatile 修饰保证可见性
+- Head 指向节点为已获得锁的节点，是一个虚拟节点，节点本身不持有具体线程
+- 获取不到同步状态，会将节点进行自旋获取锁，自旋一定次数失败后会将线程阻塞，相对于 CLH 队列性能较好
 
 ![变体的CLH队列](https://cdn.jsdelivr.net/gh/starmilkxin/picturebed/img/20220326105438.png)
 
@@ -276,12 +276,12 @@ parkAndCheckInterrupt方法：
 ```
 
 首先是tryAcquire方法(需要继承后重写该方法，否则直接抛异常)尝试获取锁。
-+ 如果获取成功，则方法结束。
-+ 如果获取失败，则运行&&后的acquireQueued方法中的addWaiter方法。在阻塞队列中添加当前线程结点。
+- 如果获取成功，则方法结束。
+- 如果获取失败，则运行&&后的acquireQueued方法中的addWaiter方法。在阻塞队列中添加当前线程结点。
 
 之后运行acquireQueued方法，尝试在队列中获取锁。
-+ 如果返回true，则说明阻塞的线程是被interrupt打断后才获取到锁的，所以要用selfInterrupt方法恢复线程打断状态，因为parkAndCheckInterrupt中的Thread.interrupted()会清空打断状态。
-+ 如果返回false，则说明线程未被interrupt打断，是通过unpark唤醒的，也就不用selfInterrupt恢复线程打断状态了。
+- 如果返回true，则说明阻塞的线程是被interrupt打断后才获取到锁的，所以要用selfInterrupt方法恢复线程打断状态，因为parkAndCheckInterrupt中的Thread.interrupted()会清空打断状态。
+- 如果返回false，则说明线程未被interrupt打断，是通过unpark唤醒的，也就不用selfInterrupt恢复线程打断状态了。
 
 <br/>
 接下来再看看release方法：
@@ -837,8 +837,8 @@ nonfairTryAcquire是AQS中已经写好的方法，其中主要是调用到了doA
 在doAcquireInterruptibly方法中囊括了addWaiter和acquireQueued方法，最重要的区别就是，在判断parkAndCheckInterrupt()返回true(表示是被interrupt打断而唤醒的)后，直接抛出打断异常。<br/>
 <br/>
 总结:
-+ 可打断模式，线程在阻塞时被interrupt打断就直接抛出异常，只有被unpark唤醒才会继续自旋尝试获取锁。
-+ 不可打断模式，线程在阻塞时无论是被interrupt打断还是unpark唤醒，之后都会继续自旋尝试获取锁。
+- 可打断模式，线程在阻塞时被interrupt打断就直接抛出异常，只有被unpark唤醒才会继续自旋尝试获取锁。
+- 不可打断模式，线程在阻塞时无论是被interrupt打断还是unpark唤醒，之后都会继续自旋尝试获取锁。
 
 ## 条件变量实现原理
 每个条件变量其实就对应着一个等待队列，其实现类是 ConditionObject。<br/>

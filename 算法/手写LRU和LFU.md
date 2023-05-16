@@ -243,115 +243,88 @@ class LFUCache {
 ```java
 class LFUCache {
 
-    class Node {
-        int key;
-        int value;
-        int fre;
+    Map<Integer, Integer> keyToVal;
 
-        public Node() {
-        }
+    Map<Integer, Integer> keyToFreq;
 
-        public Node(int key, int value) {
-            this.key = key;
-            this.value = value;
-            this.fre = 1;
-        }
-    }
-
-    Map<Integer, Deque<Node>> mapFre;
-
-    Map<Integer, Node> mapKV;
+    // LinkedHashSet 中存储 key
+    Map<Integer, LinkedHashSet> freqToKeys;
 
     int capacity;
 
-    int size;
-
-    int minFre;
+    int minFreq;
 
     public LFUCache(int capacity) {
         this.capacity = capacity;
-        mapFre = new HashMap<>();
-        mapKV = new HashMap<>();
+        keyToVal = new HashMap<>();
+        keyToFreq = new HashMap<>();
+        freqToKeys = new HashMap<>();
     }
     
-    public void insertNode(Node node) {
-        if (this.minFre == 0 || node.fre < this.minFre) {
-            this.minFre = node.fre;
-        }
-        Deque<Node> dq = mapFre.get(node.fre);
-        if (dq == null) {
-            dq = new LinkedList<>();
-            mapFre.put(node.fre, dq);
-        }
-        dq.addLast(node);
-        mapKV.put(node.key, node);
-        this.size++;
-    }
-
-    public void removeNode() {
-        if (this.size == 0) {
-            return;
-        }
-        Deque<Node> dq = null;
-        while (true) {
-            dq = mapFre.get(this.minFre);
-            if (dq == null) {
-                this.minFre++;
-            } else {
-                break;
-            }
-        }
-        Node rmNode = dq.removeFirst();
-        mapKV.remove(rmNode.key);
-        this.size--;
-        if (dq.size() == 0) {
-            mapFre.remove(this.minFre);
-            this.minFre++;
-        }
-    }
-
-    public void removeNode(Node node) {
-        Deque<Node> dq = mapFre.get(node.fre);
-        if (dq == null) {
-            return;
-        }
-        dq.remove(node);
-        mapKV.remove(node.key);
-        this.size--;
-        if (dq.size() == 0) {
-            mapFre.remove(node.fre);
-            if (node.fre == this.minFre) {
-                this.minFre++;
-            }
-        }
-    }
-
     public int get(int key) {
-        Node node = mapKV.get(key);
-        if (node == null) {
-            return -1;
+        int value = -1;
+        Integer val = keyToVal.get(key);
+        if (val == null) {
+            return value;
         }
-        int value = node.value;
-        removeNode(node);
-        node.fre++;
-        insertNode(node);
+        value = val;
+        updateKey(key);
         return value;
     }
     
     public void put(int key, int value) {
-        Node node = mapKV.get(key);
-        if (node == null) {
-            node = new Node(key, value);
-            mapKV.put(key, node);
-            if (this.size == this.capacity) {
-                removeNode();
-            }
+        if (keyToVal.containsKey(key)) {
+            keyToVal.put(key, value);
+            updateKey(key);
         } else {
-            removeNode(node);
-            node.value = value;
-            node.fre++;
+            if (keyToVal.size() == this.capacity) {
+                removeMinFreq();
+            }
+
+            int freq = 1;
+            keyToVal.put(key, value);
+            keyToFreq.put(key, freq);
+            LinkedHashSet<Integer> keys = freqToKeys.get(freq);
+            if (keys == null) {
+                keys = new LinkedHashSet<>();
+                freqToKeys.put(freq, keys);
+            }
+            keys.add(key);
+            this.minFreq = 1;
         }
-        insertNode(node);
+    }
+
+    public void updateKey(int key) {
+        int oldFreq = keyToFreq.get(key);
+        int newFreq = oldFreq + 1;
+        keyToFreq.put(key, newFreq);
+        Set<Integer> oldKeys = freqToKeys.get(oldFreq);
+        if (oldKeys != null) {
+            oldKeys.remove(key);
+            if (oldKeys.isEmpty()) {
+                freqToKeys.remove(oldFreq);
+                if (oldFreq == this.minFreq) {
+                    this.minFreq++;
+                }
+            }
+        }
+        LinkedHashSet<Integer> newKeys = freqToKeys.get(newFreq);
+        if (newKeys == null) {
+            newKeys = new LinkedHashSet<>();
+            freqToKeys.put(newFreq, newKeys);
+        }
+        newKeys.add(key);
+    }
+
+    public void removeMinFreq() {
+        Set<Integer> keys = freqToKeys.get(this.minFreq);
+        Integer delKey = keys.iterator().next();
+        keys.remove(delKey);
+        if (keys.isEmpty()) {
+            freqToKeys.remove(this.minFreq);
+        }
+        keyToVal.remove(delKey);
+        keyToFreq.remove(delKey);
     }
 }
 
